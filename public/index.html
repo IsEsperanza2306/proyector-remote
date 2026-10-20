@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Proyector">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="./manifest.json">
+<title>Proyector Remote</title>
+<style>
+:root {
+  --s1: rgba(255,255,255,0.06);
+  --s2: rgba(255,255,255,0.11);
+  --bd: rgba(255,255,255,0.09);
+  --bd2: rgba(255,255,255,0.14);
+  --t2: rgba(255,255,255,0.50);
+  --t3: rgba(255,255,255,0.28);
+  --blue: #0a84ff;
+  --indigo: #5e5ce6;
+  --green: #32d74b;
+  --red: #ff453a;
+  --orange: #ff9f0a;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+html{height:-webkit-fill-available}
+body{background:#000;color:#fff;font-family:-apple-system,'SF Pro Display','SF Pro Text','Helvetica Neue',Arial,sans-serif;min-height:100vh;min-height:-webkit-fill-available;overscroll-behavior:none}
+
+/* Ambient */
+.amb{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.amb::before{content:'';position:absolute;top:-25%;left:-15%;width:65%;height:60%;background:radial-gradient(ellipse,rgba(94,92,230,.2) 0%,transparent 65%);filter:blur(50px)}
+.amb::after{content:'';position:absolute;bottom:-15%;right:-15%;width:55%;height:55%;background:radial-gradient(ellipse,rgba(10,132,255,.16) 0%,transparent 65%);filter:blur(50px)}
+
+.page{position:relative;z-index:1;max-width:390px;margin:0 auto;padding:0 18px calc(48px + env(safe-area-inset-bottom))}
+
+/* Header */
+.header{padding:58px 0 26px;display:flex;align-items:flex-start;justify-content:space-between}
+.status-pill{display:inline-flex;align-items:center;gap:5px;background:rgba(50,215,75,.1);border:1px solid rgba(50,215,75,.2);border-radius:999px;padding:4px 10px 4px 8px;margin-bottom:10px}
+.dot{width:5px;height:5px;border-radius:50%;background:var(--green);box-shadow:0 0 5px var(--green);animation:blink 2.5s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.status-label{font-size:11px;font-weight:500;color:var(--green);letter-spacing:.2px}
+.h-title{font-size:33px;font-weight:700;letter-spacing:-.8px;line-height:1}
+.h-sub{font-size:13px;color:var(--t2);font-weight:400;letter-spacing:-.1px;margin-top:5px}
+.gear{width:36px;height:36px;background:var(--s1);border:1px solid var(--bd);border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;margin-top:2px;transition:background .15s;flex-shrink:0}
+.gear:active{background:var(--s2)}
+
+/* Warning */
+.warn{background:rgba(255,159,10,.1);border:1px solid rgba(255,159,10,.22);border-radius:16px;padding:12px 14px;display:flex;align-items:flex-start;gap:9px;margin-bottom:22px;cursor:pointer}
+.warn.hidden{display:none}
+.warn-ico{font-size:15px;flex-shrink:0;margin-top:1px}
+.warn-txt{font-size:12px;color:rgba(255,159,10,.95);line-height:1.45}
+.warn-txt b{font-weight:600}
+
+/* Section */
+.sec{margin-bottom:22px}
+.sec-title{font-size:12px;font-weight:600;color:var(--t2);letter-spacing:.3px;margin-bottom:10px;padding-left:2px}
+
+/* Apps grid */
+.apps{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.app{background:var(--s1);border:1px solid var(--bd);border-radius:20px;padding:16px 8px 13px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:transform .1s ease,background .15s;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.app:active{transform:scale(.91);background:var(--s2)}
+.app-ico{width:60px;height:60px;border-radius:16px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+.app-ico img{width:100%;height:100%;object-fit:contain;border-radius:16px}
+.app-lbl{font-size:11px;font-weight:500;color:var(--t2);letter-spacing:-.1px}
+.app.youtube .app-ico{background:#ff0000}
+.app.netflix .app-ico{background:#e50914}
+.app.disney .app-ico{background:#040b2c}
+.app.amazon .app-ico{background:#00a8e0}
+.app.hbomax .app-ico{background:#0010ef}
+.app.hdmi .app-ico{background:linear-gradient(145deg,#3a3a3c,#1c1c1e)}
+.app-sym{font-size:26px;color:#fff;line-height:1}
+
+/* D-Pad */
+.dpad-wrap{display:flex;justify-content:center;padding:4px 0}
+.dpad{position:relative;width:232px;height:232px}
+.dpad-ring{position:absolute;inset:0;border-radius:50%;background:var(--s1);border:1px solid var(--bd);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+.db{position:absolute;width:64px;height:64px;display:flex;align-items:center;justify-content:center;cursor:pointer;border-radius:50%;transition:background .1s}
+.db:active{background:rgba(255,255,255,.13)}
+.db-up{top:9px;left:50%;transform:translateX(-50%)}
+.db-dn{bottom:9px;left:50%;transform:translateX(-50%)}
+.db-lt{left:9px;top:50%;transform:translateY(-50%)}
+.db-rt{right:9px;top:50%;transform:translateY(-50%)}
+.db-ok{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:88px;height:88px;border-radius:50%;background:linear-gradient(145deg,var(--indigo),var(--blue));display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 28px rgba(10,132,255,.4);font-size:15px;font-weight:700;letter-spacing:.5px;transition:all .1s}
+.db-ok:active{transform:translate(-50%,-50%) scale(.91);box-shadow:0 2px 14px rgba(10,132,255,.25)}
+
+/* Controls */
+.ctrls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.ctrl{background:var(--s1);border:1px solid var(--bd);border-radius:20px;padding:18px 8px 14px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:transform .1s,background .15s;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.ctrl:active{transform:scale(.91);background:var(--s2)}
+.ctrl-ico{width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+.ctrl-lbl{font-size:11px;font-weight:500;color:var(--t2)}
+
+/* Volume */
+.vol{display:grid;grid-template-columns:1fr 54px 1fr;gap:10px}
+.vbtn{background:var(--s1);border:1px solid var(--bd);border-radius:20px;padding:18px 10px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;transition:transform .1s,background .15s;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);font-size:13px;font-weight:600;color:#fff}
+.vbtn:active{transform:scale(.91);background:var(--s2)}
+.vmute{background:var(--s1);border:1px solid var(--bd);border-radius:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:transform .1s,background .15s;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.vmute:active{transform:scale(.91);background:var(--s2)}
+
+/* Keyboard */
+.kb{background:var(--s1);border:1px solid var(--bd);border-radius:24px;padding:20px;-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+.kb-head{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+.kb-icon{width:30px;height:30px;background:linear-gradient(145deg,var(--indigo),var(--blue));border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.kb-title{font-size:15px;font-weight:600}
+.kb-row{display:flex;gap:9px;margin-bottom:10px}
+.kb-in{flex:1;background:rgba(255,255,255,.05);border:1px solid var(--bd2);border-radius:14px;padding:14px 15px;color:#fff;font-size:16px;font-family:inherit;outline:none;-webkit-user-select:text;user-select:text;transition:border-color .2s,background .2s}
+.kb-in::placeholder{color:var(--t3)}
+.kb-in:focus{border-color:var(--blue);background:rgba(255,255,255,.08)}
+.kb-del{background:rgba(255,69,58,.1);border:1px solid rgba(255,69,58,.18);border-radius:14px;padding:14px 15px;color:var(--red);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform .1s,background .15s}
+.kb-del:active{transform:scale(.91);background:rgba(255,69,58,.2)}
+.kb-send{width:100%;background:linear-gradient(145deg,var(--indigo),var(--blue));border:none;border-radius:14px;padding:15px;color:#fff;font-size:15px;font-weight:600;font-family:inherit;cursor:pointer;box-shadow:0 4px 22px rgba(10,132,255,.32);transition:transform .1s,box-shadow .1s;-webkit-user-select:none;user-select:none}
+.kb-send:active{transform:scale(.97);box-shadow:0 2px 10px rgba(10,132,255,.2)}
+
+/* Settings overlay */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);z-index:100;display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay.show{opacity:1;pointer-events:all}
+.sheet{width:100%;max-width:390px;background:#1c1c1e;border-radius:22px 22px 0 0;padding:0 22px calc(32px + env(safe-area-inset-bottom));transform:translateY(100%);transition:transform .4s cubic-bezier(.32,.72,0,1)}
+.overlay.show .sheet{transform:translateY(0)}
+.sh-handle{width:36px;height:4px;background:rgba(255,255,255,.18);border-radius:2px;margin:14px auto 26px}
+.sh-title{font-size:20px;font-weight:700;margin-bottom:6px}
+.sh-sub{font-size:13px;color:var(--t2);line-height:1.5;margin-bottom:26px}
+.sh-lbl{font-size:12px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
+.sh-in{width:100%;background:rgba(255,255,255,.08);border:1px solid var(--bd2);border-radius:14px;padding:14px 16px;color:#fff;font-size:15px;font-family:inherit;outline:none;margin-bottom:26px;-webkit-user-select:text;user-select:text}
+.sh-in:focus{border-color:var(--blue)}
+.sh-save{width:100%;background:var(--blue);border:none;border-radius:14px;padding:15px;color:#fff;font-size:16px;font-weight:600;font-family:inherit;cursor:pointer}
+
+/* Toast */
+.toast{position:fixed;bottom:calc(28px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(110px);background:rgba(26,26,28,.96);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:10px 20px;font-size:13px;font-weight:500;white-space:nowrap;z-index:200;pointer-events:none;transition:transform .35s cubic-bezier(.34,1.56,.64,1)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<div class="amb"></div>
+<div class="page">
+
+  <!-- Header -->
+  <div class="header">
+    <div>
+      <div class="status-pill">
+        <div class="dot" id="statusDot"></div>
+        <span class="status-label" id="statusText">Conectando...</span>
+      </div>
+      <div class="h-title">Proyector</div>
+      <div class="h-sub">HY300 Pro · 192.168.1.3</div>
+    </div>
+    <div class="gear" onclick="openSettings()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,.6)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06-.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    </div>
+  </div>
+
+  <!-- Warning -->
+  <div class="warn hidden" id="warnBanner" onclick="openSettings()">
+    <span class="warn-ico">⚠</span>
+    <div class="warn-txt"><b>Servidor no configurado.</b> Toca aquí para ingresar la URL de tu servidor local.</div>
+  </div>
+
+  <!-- Apps -->
+  <div class="sec">
+    <div class="sec-title">Aplicaciones</div>
+    <div class="apps">
+
+      <div class="app youtube" onclick="launch('youtube')">
+        <div class="app-ico">
+          <img src="./icons/youtube.png" alt="YouTube" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <span class="app-sym" style="display:none">▶</span>
+        </div>
+        <span class="app-lbl">YouTube</span>
+      </div>
+
+      <div class="app netflix" onclick="launch('netflix')">
+        <div class="app-ico">
+          <img src="./icons/netflix.jpg" alt="Netflix" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <span class="app-sym" style="display:none;font-style:italic;font-weight:900;font-size:22px">N</span>
+        </div>
+        <span class="app-lbl">Netflix</span>
+      </div>
+
+      <div class="app disney" onclick="launch('disney')">
+        <div class="app-ico">
+          <img src="./icons/disney.jpg" alt="Disney+" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <span class="app-sym" style="display:none">✦</span>
+        </div>
+        <span class="app-lbl">Disney+</span>
+      </div>
+
+      <div class="app amazon" onclick="launch('amazon')">
+        <div class="app-ico">
+          <img src="./icons/amazon.jpg" alt="Prime" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <span class="app-sym" style="display:none">▶</span>
+        </div>
+        <span class="app-lbl">Prime</span>
+      </div>
+
+      <div class="app hbomax" onclick="launch('hbomax')">
+        <div class="app-ico">
+          <img src="./icons/hbomax.jpg" alt="Max" onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+          <span class="app-sym" style="display:none;font-size:16px;font-weight:900;letter-spacing:-1px">max</span>
+        </div>
+        <span class="app-lbl">Max</span>
+      </div>
+
+      <div class="app hdmi" onclick="launch('hdmi')">
+        <div class="app-ico">
+          <svg width="32" height="22" viewBox="0 0 32 22" fill="none"><rect x="1" y="1" width="30" height="20" rx="3" stroke="rgba(255,255,255,.5)" stroke-width="1.5"/><path d="M5 7h22v8H5z" fill="rgba(255,255,255,.15)" stroke="rgba(255,255,255,.3)" stroke-width="1"/><text x="16" y="13.5" text-anchor="middle" fill="rgba(255,255,255,.7)" font-size="5" font-weight="700" font-family="-apple-system">HDMI</text></svg>
+        </div>
+        <span class="app-lbl">HDMI</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="sec">
+    <div class="sec-title">Navegación</div>
+    <div class="dpad-wrap">
+      <div class="dpad">
+        <div class="dpad-ring"></div>
+
+        <div class="db db-up" onclick="key('up')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18,15 12,9 6,15"/></svg>
+        </div>
+        <div class="db db-dn" onclick="key('down')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6,9 12,15 18,9"/></svg>
+        </div>
+        <div class="db db-lt" onclick="key('left')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18 9,12 15,6"/></svg>
+        </div>
+        <div class="db db-rt" onclick="key('right')">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9,18 15,12 9,6"/></svg>
+        </div>
+
+        <div class="db-ok" onclick="key('ok')">OK</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controls -->
+  <div class="sec">
+    <div class="sec-title">Controles</div>
+    <div class="ctrls">
+      <div class="ctrl" onclick="key('back')">
+        <div class="ctrl-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15,18 9,12 15,6"/></svg>
+        </div>
+        <span class="ctrl-lbl">Atrás</span>
+      </div>
+      <div class="ctrl" onclick="key('home')">
+        <div class="ctrl-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+        </div>
+        <span class="ctrl-lbl">Inicio</span>
+      </div>
+      <div class="ctrl" onclick="key('menu')">
+        <div class="ctrl-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </div>
+        <span class="ctrl-lbl">Menú</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Volume -->
+  <div class="sec">
+    <div class="sec-title">Volumen</div>
+    <div class="vol">
+      <div class="vbtn" onclick="key('vol_down')">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+        Vol −
+      </div>
+      <div class="vmute" onclick="key('mute')">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+      </div>
+      <div class="vbtn" onclick="key('vol_up')">
+        Vol +
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11,5 6,9 2,9 2,15 6,15 11,19 11,5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+      </div>
+    </div>
+  </div>
+
+  <!-- Keyboard -->
+  <div class="sec">
+    <div class="kb">
+      <div class="kb-head">
+        <div class="kb-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M8 11h.01M12 11h.01M16 11h.01M8 15h8"/></svg>
+        </div>
+        <span class="kb-title">Teclado remoto</span>
+      </div>
+      <div class="kb-row">
+        <input class="kb-in" id="textInput" type="text" placeholder="Buscar, correo, contraseña...">
+        <button class="kb-del" onclick="key('del')">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><line x1="18" y1="9" x2="12" y2="15"/><line x1="12" y1="9" x2="18" y2="15"/></svg>
+        </button>
+      </div>
+      <button class="kb-send" onclick="sendText()">Enviar al proyector</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- Settings Sheet -->
+<div class="overlay" id="overlay" onclick="maybeClose(event)">
+  <div class="sheet" id="sheet">
+    <div class="sh-handle"></div>
+    <div class="sh-title">Servidor</div>
+    <div class="sh-sub">URL de tu servidor local. En la misma WiFi usa la IP directa. Para GitHub Pages usa la URL del túnel HTTPS (localtunnel o ngrok).</div>
+    <div class="sh-lbl">URL del servidor</div>
+    <input class="sh-in" id="serverInput" type="url" placeholder="http://192.168.1.4:3000">
+    <button class="sh-save" onclick="saveSettings()">Guardar</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(()=>{});
+
+let SERVER = localStorage.getItem('serverUrl') || '';
+
+function url(path) { return SERVER ? SERVER.replace(/\/$/,'') + path : path; }
+
+function checkWarn() {
+  const remote = location.hostname !== 'localhost' && location.hostname !== '127.0.0.1' && !/^192\.168\./.test(location.hostname);
+  document.getElementById('warnBanner').classList.toggle('hidden', !(remote && !SERVER));
+}
+checkWarn();
+
+function toast(msg, color) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.color = color || '#fff';
+  t.classList.add('show');
+  clearTimeout(t._t);
+  t._t = setTimeout(() => t.classList.remove('show'), 1800);
+}
+
+function openSettings() {
+  document.getElementById('serverInput').value = SERVER;
+  document.getElementById('overlay').classList.add('show');
+}
+function maybeClose(e) {
+  if (e.target === document.getElementById('overlay'))
+    document.getElementById('overlay').classList.remove('show');
+}
+function saveSettings() {
+  SERVER = document.getElementById('serverInput').value.trim();
+  SERVER ? localStorage.setItem('serverUrl', SERVER) : localStorage.removeItem('serverUrl');
+  document.getElementById('overlay').classList.remove('show');
+  checkWarn();
+  toast('Guardado', '#32d74b');
+  checkStatus();
+}
+
+async function post(path, body = {}) {
+  try {
+    const r = await fetch(url(path), { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    return r.ok;
+  } catch { toast('Sin conexión', '#ff453a'); return false; }
+}
+
+const KEY_LABELS = { up:'↑', down:'↓', left:'←', right:'→', ok:'OK', back:'Atrás', home:'Inicio', menu:'Menú', vol_up:'Vol +', vol_down:'Vol −', mute:'Mute', del:'Borrar' };
+const APP_LABELS = { youtube:'YouTube', netflix:'Netflix', disney:'Disney+', amazon:'Prime Video', hbomax:'Max', hdmi:'HDMI', keystone:'Keystone' };
+
+async function key(name) {
+  const ok = await post(`/key/${name}`);
+  if (ok) toast(KEY_LABELS[name] || name);
+}
+
+async function launch(app) {
+  toast(`Abriendo ${APP_LABELS[app] || app}...`, '#0a84ff');
+  await post(`/launch/${app}`);
+}
+
+async function sendText() {
+  const el = document.getElementById('textInput');
+  const text = el.value.trim();
+  if (!text) return;
+  const ok = await post('/type', { text });
+  if (ok) { toast('Enviado ✓', '#32d74b'); el.value = ''; }
+}
+
+document.getElementById('textInput').addEventListener('keydown', e => { if (e.key === 'Enter') sendText(); });
+
+async function checkStatus() {
+  try {
+    const r = await fetch(url('/status'));
+    const d = await r.json();
+    const dot = document.getElementById('statusDot');
+    const lbl = document.getElementById('statusText');
+    const pill = dot.closest('.status-pill');
+    const c = d.connected ? '#32d74b' : '#ff453a';
+    dot.style.background = c; dot.style.boxShadow = `0 0 5px ${c}`;
+    lbl.style.color = c; lbl.textContent = d.connected ? 'Conectado' : 'Sin conexión';
+    pill.style.background = d.connected ? 'rgba(50,215,75,.1)' : 'rgba(255,69,58,.1)';
+    pill.style.borderColor = d.connected ? 'rgba(50,215,75,.2)' : 'rgba(255,69,58,.2)';
+  } catch {}
+}
+
+checkStatus();
+setInterval(checkStatus, 10000);
+</script>
+</body>
+</html>
